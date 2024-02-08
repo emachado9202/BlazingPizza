@@ -3,8 +3,10 @@
 @inject OrderState OrderState
 @inject HttpClient HttpClient
 @inject NavigationManager NavigationManager
+@implements IDisposable
+
 <div class="main">
-    <EditForm Model=Order.DeliveryAddress OnSubmit=CheckSubmission>
+    <EditForm EditContext=editContext OnSubmit=PlaceOrder>
 
         <div class="checkout-cols">
             <div class="checkout-order-details">
@@ -20,8 +22,8 @@
                 <AddressEditor Address="Order.DeliveryAddress" />
             </div>
         </div>
-
-        <button class="checkout-button btn btn-warning" disabled=@isSubmitting>
+        <ValidationSummary />
+        <button class="checkout-button btn btn-warning" disabled=@isError>
             Place order
         </button>
     </EditForm>
@@ -29,29 +31,36 @@
 
 @code {
     Order Order => OrderState.Order;
-    bool isSubmitting;
+    private EditContext editContext;
     bool isError = false;
 
-    private async Task CheckSubmission(EditContext editContext)
+    protected override void OnInitialized()
     {
-        isSubmitting = true;
-        var model = editContext.Model as Address;
-        isError = string.IsNullOrWhiteSpace(model?.Name)
-            || string.IsNullOrWhiteSpace(model?.Line1)
-            || string.IsNullOrWhiteSpace(model?.PostalCode);
-        if (!isError)
-        {
-            await PlaceOrder();
-        }
-        isSubmitting = false;
+        editContext = new(Order.DeliveryAddress);
+        editContext.OnFieldChanged += HandleFieldChanged;
+    }
+
+    private void HandleFieldChanged(object sender, FieldChangedEventArgs e)
+    {
+        isError = !editContext.Validate();
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        editContext.OnFieldChanged -= HandleFieldChanged;
+    }
+
+    protected void ShowError()
+    {
+        isError = true;
     }
 
     async Task PlaceOrder()
     {
-        isSubmitting = true;
-        var response = await HttpClient.PostAsJsonAsync(NavigationManager.BaseUri + "orders", OrderState.Order);
-        var newOrderId = await response.Content.ReadFromJsonAsync<int>();
-        OrderState.ResetOrder();
-        NavigationManager.NavigateTo($"myorders/{newOrderId}");
+    var response = await HttpClient.PostAsJsonAsync(NavigationManager.BaseUri + "orders", OrderState.Order);
+    var newOrderId= await response.Content.ReadFromJsonAsync<int>();
+    OrderState.ResetOrder();
+    NavigationManager.NavigateTo($"myorders/{newOrderId}");
     }
 }
