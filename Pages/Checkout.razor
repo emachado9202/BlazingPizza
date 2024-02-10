@@ -58,9 +58,9 @@
 
     async Task PlaceOrder()
     {
-    var response = await HttpClient.PostAsJsonAsync(NavigationManager.BaseUri + "orders", OrderState.Order);
-    var newOrderId= await response.Content.ReadFromJsonAsync<int>();
-    OrderState.ResetOrder();
-    NavigationManager.NavigateTo($"myorders/{newOrderId}");
+        var response = await HttpClient.PostAsJsonAsync(NavigationManager.BaseUri + "orders", OrderState.Order);
+        var newOrderId= await response.Content.ReadFromJsonAsync<int>();
+        OrderState.ResetOrder();
+        NavigationManager.NavigateTo($"myorders/{newOrderId}");
     }
 }
